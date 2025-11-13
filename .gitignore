@@ -53,3 +53,6 @@ temp/
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Documentation (contains sensitive info - migrations, RPC functions, etc)
+docs/
