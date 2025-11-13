@@ -27,6 +27,7 @@ export interface User {
   nome: string;
   sobrenome: string | null;
   nome_completo: string;
+  email: string | null;
   avatar_url: string | null;
   telefone: string | null;
   especialidade: string | null;

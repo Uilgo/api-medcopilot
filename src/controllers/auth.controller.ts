@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/auth.service';
 import type { SignupInput, LoginInput, ForgotPasswordInput, ResetPasswordInput, OnboardingInput } from '../schemas/auth.schema';
+import { getUserId } from '../utils/type-guards';
 
 /**
  * POST /api/auth/signup
@@ -122,15 +123,7 @@ export const getMe = async (
   next: NextFunction
 ) => {
   try {
-    // userId virá do middleware de autenticação
-    const userId = (req as any).user_id;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: 'Não autenticado',
-      });
-    }
-
+    const userId = getUserId(req);
     const result = await authService.getMe(userId);
 
     res.status(200).json({
@@ -152,14 +145,7 @@ export const getWorkspaces = async (
 ) => {
   try {
     // userId virá do middleware de autenticação
-    const userId = (req as any).user_id;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: 'Não autenticado',
-      });
-    }
-
+    const userId = getUserId(req);
     const workspaces = await authService.getUserWorkspaces(userId);
 
     res.status(200).json({
@@ -180,15 +166,7 @@ export const onboarding = async (
   next: NextFunction
 ) => {
   try {
-    // userId virá do middleware de autenticação
-    const userId = (req as any).user_id;
-
-    if (!userId) {
-      return res.status(401).json({
-        message: 'Não autenticado',
-      });
-    }
-
+    const userId = getUserId(req);
     const result = await authService.completeOnboarding(userId, req.body);
 
     res.status(201).json({

@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as workspaceService from '../services/workspace.service';
 import type { CreateWorkspaceInput, UpdateWorkspaceInput } from '../schemas/workspace.schema';
+import { getUserId, getWorkspaceId } from '../utils/type-guards';
 
 /**
  * POST /api/workspaces
@@ -17,12 +18,7 @@ export const createWorkspace = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).user_id;
-
-    if (!userId) {
-      return res.status(401).json({ message: 'Não autenticado' });
-    }
-
+    const userId = getUserId(req);
     const workspace = await workspaceService.createWorkspace(userId, req.body);
 
     res.status(201).json({
@@ -45,12 +41,7 @@ export const getWorkspace = async (
 ) => {
   try {
     const { slug } = req.params;
-    const userId = (req as any).user_id;
-
-    if (!userId) {
-      return res.status(401).json({ message: 'Não autenticado' });
-    }
-
+    const userId = getUserId(req);
     const result = await workspaceService.getWorkspaceBySlug(slug, userId);
 
     res.status(200).json({
@@ -71,12 +62,7 @@ export const updateWorkspace = async (
   next: NextFunction
 ) => {
   try {
-    const workspaceId = (req as any).workspace_id;
-
-    if (!workspaceId) {
-      return res.status(400).json({ message: 'Workspace não encontrado' });
-    }
-
+    const workspaceId = getWorkspaceId(req);
     const workspace = await workspaceService.updateWorkspace(workspaceId, req.body);
 
     res.status(200).json({
@@ -98,14 +84,8 @@ export const deleteWorkspace = async (
   next: NextFunction
 ) => {
   try {
-    const workspaceId = (req as any).workspace_id;
-    const userId = (req as any).user_id;
-
-    if (!workspaceId || !userId) {
-      return res.status(400).json({ message: 'Dados inválidos' });
-    }
-
-    const result = await workspaceService.deleteWorkspace(workspaceId, userId);
+    const workspaceId = getWorkspaceId(req);
+    const result = await workspaceService.deleteWorkspace(workspaceId);
 
     res.status(200).json(result);
   } catch (error) {

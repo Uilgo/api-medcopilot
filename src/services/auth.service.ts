@@ -29,15 +29,11 @@ export const signup = async (data: SignupInput) => {
     throw new AppError('Erro ao criar usuário', 500);
   }
 
-  // Atualizar dados adicionais na tabela users
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({
-      nome,
-      sobrenome,
-      onboarding: false,
-    })
-    .eq('id', authData.user.id);
+  // Atualizar dados adicionais na tabela users usando RPC
+  const { error: updateError } = await supabase.rpc('atualizar_perfil_usuario', {
+    p_nome: nome,
+    p_sobrenome: sobrenome,
+  });
 
   if (updateError) {
     throw new AppError('Erro ao atualizar dados do usuário', 500);
@@ -215,6 +211,7 @@ export const getUserWorkspaces = async (userId: string) => {
 
 /**
  * Completar onboarding (criar primeiro workspace)
+ * Usa RPC Function para garantir atomicidade e segurança
  */
 export const completeOnboarding = async (userId: string, data: OnboardingInput) => {
   const { nome_workspace, slug } = data;
@@ -222,62 +219,34 @@ export const completeOnboarding = async (userId: string, data: OnboardingInput) 
   // Gerar slug se não fornecido
   const workspaceSlug = slug || generateSlug(nome_workspace);
 
-  // Verificar se slug já existe
-  const { data: existingWorkspace } = await supabase
-    .from('workspaces')
-    .select('id')
-    .eq('slug', workspaceSlug)
-    .single();
+  // Chamar RPC Function do Supabase
+  const { data: result, error } = await supabase.rpc('completar_onboarding', {
+    p_workspace_slug: workspaceSlug,
+    p_workspace_nome: nome_workspace,
+  });
 
-  if (existingWorkspace) {
-    throw new AppError('Este slug já está em uso', 400);
+  if (error) {
+    // Tratar erros específicos da RPC
+    if (error.message.includes('já foi completado')) {
+      throw new AppError('Onboarding já foi completado', 400);
+    }
+    if (error.message.includes('já está em uso')) {
+      throw new AppError('Este slug já está em uso', 400);
+    }
+    throw new AppError(error.message || 'Erro ao completar onboarding', 500);
   }
 
-  // Criar workspace
-  const { data: workspaceData, error: workspaceError } = await supabase
-    .from('workspaces')
-    .insert({
-      nome: nome_workspace,
-      slug: workspaceSlug,
-      owner_id: userId,
-      status_assinatura: 'trial',
-      plano_assinatura: 'basic',
-    })
-    .select()
-    .single();
-
-  if (workspaceError || !workspaceData) {
-    throw new AppError('Erro ao criar workspace', 500);
-  }
-
-  // Adicionar usuário como ADMIN no workspace
-  const { error: memberError } = await supabase
-    .from('workspace_members')
-    .insert({
-      workspace_id: workspaceData.id,
-      user_id: userId,
-      role: 'ADMIN',
-      ativo: true,
-    });
-
-  if (memberError) {
-    // Rollback: deletar workspace criado
-    await supabase.from('workspaces').delete().eq('id', workspaceData.id);
-    throw new AppError('Erro ao adicionar membro ao workspace', 500);
-  }
-
-  // Atualizar onboarding do usuário
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ onboarding: true })
-    .eq('id', userId);
-
-  if (updateError) {
-    throw new AppError('Erro ao atualizar status de onboarding', 500);
+  if (!result) {
+    throw new AppError('Erro ao completar onboarding', 500);
   }
 
   return {
-    workspace: workspaceData as Workspace,
+    workspace: {
+      id: result.workspace_id,
+      slug: result.workspace_slug,
+      nome: result.workspace_nome,
+    },
+    onboarding_completo: result.user_onboarding,
     message: 'Onboarding completado com sucesso',
   };
 };

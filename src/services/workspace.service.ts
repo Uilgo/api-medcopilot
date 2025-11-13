@@ -111,79 +111,56 @@ export const getWorkspaceBySlug = async (slug: string, userId: string) => {
 
 /**
  * Atualizar workspace
- * Apenas ADMIN pode atualizar
+ * Apenas ADMIN pode atualizar (validado pela RPC)
  */
 export const updateWorkspace = async (
   workspaceId: string,
   data: UpdateWorkspaceInput
 ) => {
-  const updateData: any = {};
+  // Chamar RPC Function do Supabase
+  const { data: result, error } = await supabase.rpc('atualizar_workspace', {
+    p_workspace_id: workspaceId,
+    p_nome: data.nome || null,
+    p_slug: data.slug || null,
+  });
 
-  if (data.nome) updateData.nome = data.nome;
-  if (data.plano_assinatura) updateData.plano_assinatura = data.plano_assinatura;
-
-  // Se slug foi fornecido, verificar se já existe
-  if (data.slug) {
-    const { data: existingWorkspace } = await supabase
-      .from('workspaces')
-      .select('id')
-      .eq('slug', data.slug)
-      .neq('id', workspaceId)
-      .single();
-
-    if (existingWorkspace) {
+  if (error) {
+    // Tratar erros específicos da RPC
+    if (error.message.includes('Apenas ADMIN')) {
+      throw new AppError('Apenas ADMIN pode atualizar workspace', 403);
+    }
+    if (error.message.includes('já está em uso')) {
       throw new AppError('Este slug já está em uso', 400);
     }
-
-    updateData.slug = data.slug;
+    throw new AppError(error.message || 'Erro ao atualizar workspace', 500);
   }
 
-  // Atualizar workspace
-  const { data: workspaceData, error } = await supabase
-    .from('workspaces')
-    .update(updateData)
-    .eq('id', workspaceId)
-    .select()
-    .single();
-
-  if (error || !workspaceData) {
+  if (!result) {
     throw new AppError('Erro ao atualizar workspace', 500);
   }
 
-  return workspaceData as Workspace;
+  return result as Workspace;
 };
 
 /**
  * Deletar workspace
- * Apenas ADMIN (owner) pode deletar
+ * Apenas OWNER pode deletar (validado pela RPC)
  */
-export const deleteWorkspace = async (workspaceId: string, userId: string) => {
-  // Verificar se usuário é o owner
-  const { data: workspace, error: workspaceError } = await supabase
-    .from('workspaces')
-    .select('owner_id')
-    .eq('id', workspaceId)
-    .single();
+export const deleteWorkspace = async (workspaceId: string) => {
+  // Chamar RPC Function do Supabase
+  const { data: result, error } = await supabase.rpc('deletar_workspace', {
+    p_workspace_id: workspaceId,
+  });
 
-  if (workspaceError || !workspace) {
-    throw new AppError('Workspace não encontrado', 404);
+  if (error) {
+    // Tratar erros específicos da RPC
+    if (error.message.includes('Apenas o OWNER')) {
+      throw new AppError('Apenas o OWNER pode deletar o workspace', 403);
+    }
+    throw new AppError(error.message || 'Erro ao deletar workspace', 500);
   }
 
-  if (workspace.owner_id !== userId) {
-    throw new AppError('Apenas o owner pode deletar o workspace', 403);
-  }
-
-  // Deletar workspace (cascade vai deletar membros, pacientes, consultas, etc.)
-  const { error: deleteError } = await supabase
-    .from('workspaces')
-    .delete()
-    .eq('id', workspaceId);
-
-  if (deleteError) {
-    throw new AppError('Erro ao deletar workspace', 500);
-  }
-
-  return { message: 'Workspace deletado com sucesso' };
+  return result || { message: 'Workspace deletado com sucesso' };
 };
 
 /**

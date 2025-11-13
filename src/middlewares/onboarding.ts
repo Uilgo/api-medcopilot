@@ -21,7 +21,7 @@ export const checkOnboardingComplete = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).user_id;
+    const userId = req.user_id;
 
     if (!userId) {
       // Se não está autenticado, deixa o middleware de auth lidar
@@ -82,7 +82,7 @@ export const checkOnboardingNotComplete = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).user_id;
+    const userId = req.user_id;
 
     if (!userId) {
       throw new AppError('Usuário não autenticado', 401);

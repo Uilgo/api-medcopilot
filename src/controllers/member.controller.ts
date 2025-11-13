@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as memberService from '../services/member.service';
 import type { InviteMemberInput, UpdateMemberRoleInput } from '../schemas/workspace.schema';
+import { getWorkspaceId, getUserId } from '../utils/type-guards';
 
 /**
  * POST /api/:workspace_slug/members
@@ -17,14 +18,8 @@ export const inviteMember = async (
   next: NextFunction
 ) => {
   try {
-    const workspaceId = (req as any).workspace_id;
-    const userId = (req as any).user_id;
-
-    if (!workspaceId || !userId) {
-      return res.status(400).json({ message: 'Dados inválidos' });
-    }
-
-    const result = await memberService.inviteMember(workspaceId, req.body, userId);
+    const workspaceId = getWorkspaceId(req);
+    const result = await memberService.inviteMember(workspaceId, req.body);
 
     res.status(201).json({
       message: 'Membro convidado com sucesso',
@@ -45,12 +40,7 @@ export const getMembers = async (
   next: NextFunction
 ) => {
   try {
-    const workspaceId = (req as any).workspace_id;
-
-    if (!workspaceId) {
-      return res.status(400).json({ message: 'Workspace não encontrado' });
-    }
-
+    const workspaceId = getWorkspaceId(req);
     const members = await memberService.getWorkspaceMembers(workspaceId);
 
     res.status(200).json({
@@ -72,12 +62,7 @@ export const getMember = async (
 ) => {
   try {
     const { id } = req.params;
-    const workspaceId = (req as any).workspace_id;
-
-    if (!workspaceId) {
-      return res.status(400).json({ message: 'Workspace não encontrado' });
-    }
-
+    const workspaceId = getWorkspaceId(req);
     const member = await memberService.getMemberById(id, workspaceId);
 
     res.status(200).json({
@@ -99,13 +84,7 @@ export const updateMemberRole = async (
 ) => {
   try {
     const { id } = req.params;
-    const workspaceId = (req as any).workspace_id;
-
-    if (!workspaceId) {
-      return res.status(400).json({ message: 'Workspace não encontrado' });
-    }
-
-    const member = await memberService.updateMemberRole(id, workspaceId, req.body);
+    const member = await memberService.updateMemberRole(id, req.body);
 
     res.status(200).json({
       message: 'Role atualizada com sucesso',
@@ -127,14 +106,7 @@ export const removeMember = async (
 ) => {
   try {
     const { id } = req.params;
-    const workspaceId = (req as any).workspace_id;
-    const userId = (req as any).user_id;
-
-    if (!workspaceId || !userId) {
-      return res.status(400).json({ message: 'Dados inválidos' });
-    }
-
-    const result = await memberService.removeMember(id, workspaceId, userId);
+    const result = await memberService.removeMember(id);
 
     res.status(200).json(result);
   } catch (error) {

@@ -20,7 +20,7 @@ import { UserRole } from '../types/enums';
 export const requireRole = (allowedRoles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userRole = (req as any).user_role as UserRole;
+      const userRole = req.user_role;
 
       if (!userRole) {
         throw new AppError('Role do usuário não encontrada', 403);
@@ -74,8 +74,8 @@ export const checkOwnership = (
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).user_id as string;
-      const userRole = (req as any).user_role as UserRole;
+      const userId = req.user_id;
+      const userRole = req.user_role;
 
       // ADMIN tem acesso total
       if (userRole === UserRole.ADMIN) {
@@ -101,7 +101,7 @@ export const checkOwnership = (
  * Helper: Verificar se usuário é ADMIN
  */
 export const isAdmin = (req: Request): boolean => {
-  const userRole = (req as any).user_role as UserRole;
+  const userRole = req.user_role;
   return userRole === UserRole.ADMIN;
 };
 
@@ -109,7 +109,7 @@ export const isAdmin = (req: Request): boolean => {
  * Helper: Verificar se usuário é PROFESSIONAL ou ADMIN
  */
 export const isProfessional = (req: Request): boolean => {
-  const userRole = (req as any).user_role as UserRole;
+  const userRole = req.user_role;
   return userRole === UserRole.ADMIN || userRole === UserRole.PROFESSIONAL;
 };
 
@@ -117,6 +117,6 @@ export const isProfessional = (req: Request): boolean => {
  * Helper: Verificar se usuário é STAFF
  */
 export const isStaff = (req: Request): boolean => {
-  const userRole = (req as any).user_role as UserRole;
+  const userRole = req.user_role;
   return userRole === UserRole.STAFF;
 };

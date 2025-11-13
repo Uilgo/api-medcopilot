@@ -37,7 +37,7 @@ export const extractWorkspaceContext = async (
     }
 
     // Adiciona o slug ao request
-    (req as any).workspace_slug = workspace_slug;
+    req.workspace_slug = workspace_slug;
 
     next();
   } catch (error) {
@@ -56,8 +56,8 @@ export const validateWorkspaceAccess = async (
   next: NextFunction
 ) => {
   try {
-    const userId = (req as any).user_id;
-    const workspaceSlug = (req as any).workspace_slug;
+    const userId = req.user_id;
+    const workspaceSlug = req.workspace_slug;
 
     if (!userId) {
       throw new AppError('Usuário não autenticado', 401);
@@ -100,8 +100,8 @@ export const validateWorkspaceAccess = async (
     }
 
     // Injetar dados do workspace no request
-    (req as any).workspace_id = workspace.id;
-    (req as any).user_role = member.role;
+    req.workspace_id = workspace.id;
+    req.user_role = member.role;
 
     next();
   } catch (error) {
